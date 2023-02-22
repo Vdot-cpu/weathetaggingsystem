@@ -25,8 +25,8 @@ print(openweather_data)
 print("\nS&P Data:")
 msft = yf.Ticker("MSFT")
 print('\n  ')
-history = msft.history(period="1mo")
-print(msft.history(period="1mo"))
+history = msft.history(start='2022-02-17', end='2022-03-17')
+print(history)
 
 
 
