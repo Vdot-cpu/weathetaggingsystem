@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 import yfinance as yf
+import mplfinance as mpf
 
 
 
@@ -21,12 +22,39 @@ openweather_data = response.json()
 print("OpenWeather Data:")
 print(openweather_data)
 
+#granularity "1m" "2m" "5m" "15m" "30m" "60m" "90m" "1h" “1d”, “5d”, “1mo”, “3mo”, “6mo”, “1y”, “2y”, “5y”, “10y”, “ytd”, “max”
+
 # Print the S&P data
-print("\nS&P Data:")
-msft = yf.Ticker("MSFT")
-print('\n  ')
-history = msft.history(start='2022-02-17', end='2022-03-17')
-print(history)
+def get_agricultural_data(startDate,endDate,interval):
+    print("\nS&P GCSI  Data:")
+    agriculture = yf.Ticker("^SPGSCI")
+    print('\n  ')
+    history = agriculture.history(start=startDate, end=endDate, interval = interval,actions= False)
+    mpf.plot(history, type='line')
+
+def get_agricultural_data(startDate,endDate,interval):
+    print("\nNorth America Agriculture  Data:")
+    agriculture = yf.Ticker("^SPGSAG")
+    print('\n ')
+    history = agriculture.history(start=startDate, end=endDate, interval = interval,actions= False)
+    mpf.plot(history, type='line')
+
+def get_technology_data(startDate,endDate,interval):
+    print("\nNorth America Technology  Data:")
+    agriculture = yf.Ticker("^SPGSTISO")
+    print('\n  ')
+    history = agriculture.history(start=startDate, end=endDate, interval = interval,actions= False)
+    mpf.plot(history, type='line')
+
+def get_consumerGood_data(startDate,endDate,interval):
+    print("\n North America Consumer Goods Data:")
+    agriculture = yf.Ticker("^SPHLCGIP")
+    print('\n  ')
+    history = agriculture.history(start=startDate, end=endDate, interval = interval,actions= False)
+    mpf.plot(history, type='line')
+
+
+get_agricultural_data('2023-02-23','2023-02-24','1m')
 
 
 
