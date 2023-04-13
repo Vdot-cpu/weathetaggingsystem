@@ -1,3 +1,4 @@
+import numpy as np
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -5,6 +6,7 @@ import yfinance as yf
 import mplfinance as mpf
 from meteostat import Point, Daily, Monthly, Hourly
 from datetime import datetime
+from scipy.interpolate import interp1d, InterpolatedUnivariateSpline
 
 # Create Point for Locations
 # London
@@ -20,8 +22,8 @@ temperature = 'tavg'
 precipitation = 'prcp'
 
 # stock parameters
-# agriculture_ticker = yf.Ticker("AAPL")
-agriculture_ticker = yf.Ticker("^SPGSAG")
+agriculture_ticker = yf.Ticker("AAPL")
+#agriculture_ticker = yf.Ticker("^SPGSAG")
 technology_ticker = yf.Ticker("^SPGSTISO")
 consumerGood_ticker = yf.Ticker("^SPHLCGIP")
 
@@ -57,32 +59,52 @@ set_end_date_time(2023, 2, 24)
 def get_stock_data(startDate, endDate, interval, ticker):
     print(f"Fetching stock data from {startDate} to {endDate}")
     history = ticker.history(start=startDate, end=endDate, period=interval, actions=False)
+    history.index = history.index.tz_localize(None)
     print(history)
     return history
 
 
 # get weather data
-def get_weather_data(location):
+def get_weather_data(location, weather_parameter, stockData):
+
     print(f"Fetching weather data from {weatherStartDate} to {weatherEndDate}")
     data = Daily(location, weatherStartDate, weatherEndDate)
     data = data.fetch()
+    data.index = data.index.tz_localize(None)
+    data = data[:-1]  # Remove the last row
+
+
+    # Filter out dates that are not in the stock data
+    data = data.loc[data.index.isin(stockData.index)]
+
+    print(data)
     return data
+
+
 
 
 # mpf.plot(get_stock_data(stockStartDate,stockEndDate,'1m',agriculture_ticker), type='line')
 
 # Plot both datasets on the same graph
-def plot_data(ticker, interval, location):
+def plot_data(ticker, weather_variable, location):
     # Get stock data
-    stock_data = get_stock_data(stockStartDate, stockEndDate, interval, ticker)
+    stock_data = get_stock_data(stockStartDate, stockEndDate, '1m', ticker)
 
     # Get weather data
-    weather_data = get_weather_data(location)
-
+    weather_data = get_weather_data(location, weather_variable,stock_data)
     # Filter weather data to match date range of stock data
     weather_data = weather_data.loc[stock_data.index[0]:stock_data.index[-1], :]
 
-    # Create subplots
+    # Convert stock data index to Unix timestamps
+    #stock_timestamps=stock_data.index.map(datetime.timestamp)
+
+    # Interpolate weather data
+    #f = np.interp(stock_timestamps, weather_data.index.map(datetime.timestamp), weather_data[weather_variable])
+
+    # Interpolate weather data to match stock data frequency
+    #weather_data_interpolated = f(stock_timestamps)
+
+    # Create plot
     fig, ax = plt.subplots()
 
     # Plot stock data
@@ -90,11 +112,11 @@ def plot_data(ticker, interval, location):
 
     # Plot weather data
     ax2 = ax.twinx()
-    ax2.plot(weather_data.index, weather_data[temperature], color='red')
+    ax2.plot(stock_data.index, weather_data, color='red')
 
     # Add labels
     ax.set_ylabel('Price')
-    ax2.set_ylabel('Temperature (°C)')
+    ax2.set_ylabel(weather_variable)
     ax.set_xlabel('Date')
 
     # Set x-axis scale to match stock data
@@ -103,9 +125,9 @@ def plot_data(ticker, interval, location):
     plt.show()
 
 
-set_start_date_time(2023, 2, 20)
-set_end_date_time(2023, 2, 25)
-plot_data(consumerGood_ticker, '1d', london)
+#set_start_date_time(2022, 2, 20)
+#set_end_date_time(2023, 2, 25)
+#plot_data(agriculture_ticker, '1d', london)
 
 
 
