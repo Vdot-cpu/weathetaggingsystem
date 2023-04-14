@@ -81,10 +81,6 @@ def get_weather_data(location, weather_parameter, stockData):
     return data
 
 
-
-
-# mpf.plot(get_stock_data(stockStartDate,stockEndDate,'1m',agriculture_ticker), type='line')
-
 # Plot both datasets on the same graph
 def plot_data(ticker, weather_variable, location):
     # Get stock data
@@ -95,14 +91,6 @@ def plot_data(ticker, weather_variable, location):
     # Filter weather data to match date range of stock data
     weather_data = weather_data.loc[stock_data.index[0]:stock_data.index[-1], :]
 
-    # Convert stock data index to Unix timestamps
-    #stock_timestamps=stock_data.index.map(datetime.timestamp)
-
-    # Interpolate weather data
-    #f = np.interp(stock_timestamps, weather_data.index.map(datetime.timestamp), weather_data[weather_variable])
-
-    # Interpolate weather data to match stock data frequency
-    #weather_data_interpolated = f(stock_timestamps)
 
     # Create plot
     fig, ax = plt.subplots()
@@ -112,11 +100,19 @@ def plot_data(ticker, weather_variable, location):
 
     # Plot weather data
     ax2 = ax.twinx()
-    ax2.plot(stock_data.index, weather_data, color='red')
+    ax2.plot(stock_data.index, weather_data[weather_variable], color='red')
 
     # Add labels
+    weather_variable_axis = " "
+    if (weather_variable == "tavg"):
+        weather_variable_axis = "Temperature"
+    elif (weather_variable == "prcp"):
+        weather_variable_axis = "Precipitation"
+    elif (weather_variable == "rh_avg"):
+        weather_variable_axis = "Humidity"
+
     ax.set_ylabel('Price')
-    ax2.set_ylabel(weather_variable)
+    ax2.set_ylabel(weather_variable_axis)
     ax.set_xlabel('Date')
 
     # Set x-axis scale to match stock data
