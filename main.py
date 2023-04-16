@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import yfinance as yf
 import mplfinance as mpf
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from meteostat import Point, Daily, Monthly, Hourly
 from datetime import datetime
 from scipy.interpolate import interp1d, InterpolatedUnivariateSpline
@@ -82,11 +83,7 @@ def get_weather_data(location, weather_parameter, stockData):
 
 
 
-
-# mpf.plot(get_stock_data(stockStartDate,stockEndDate,'1m',agriculture_ticker), type='line')
-
-# Plot both datasets on the same graph
-def plot_data(ticker, weather_variable, location):
+def plot_data(ticker, weather_variable, location, window):
     # Get stock data
     stock_data = get_stock_data(stockStartDate, stockEndDate, '1m', ticker)
 
@@ -95,35 +92,40 @@ def plot_data(ticker, weather_variable, location):
     # Filter weather data to match date range of stock data
     weather_data = weather_data.loc[stock_data.index[0]:stock_data.index[-1], :]
 
-    # Convert stock data index to Unix timestamps
-    #stock_timestamps=stock_data.index.map(datetime.timestamp)
-
-    # Interpolate weather data
-    #f = np.interp(stock_timestamps, weather_data.index.map(datetime.timestamp), weather_data[weather_variable])
-
-    # Interpolate weather data to match stock data frequency
-    #weather_data_interpolated = f(stock_timestamps)
-
     # Create plot
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8, 4))
+
 
     # Plot stock data
     ax.plot(stock_data.index, stock_data['Close'], color='blue')
 
     # Plot weather data
     ax2 = ax.twinx()
-    ax2.plot(stock_data.index, weather_data, color='red')
+    ax2.plot(stock_data.index, weather_data[weather_variable], color='red')
 
     # Add labels
+    if (weather_variable == "tavg"):
+        weather_variable_label = "Temperature (°C)"
+    elif (weather_variable == "prcp"):
+        weather_variable_label = "Precipitation (mm)"
+    elif (weather_variable == "pres"):
+        weather_variable_label = "Pressure (atm)"
+
     ax.set_ylabel('Price')
-    ax2.set_ylabel(weather_variable)
+    ax2.set_ylabel(weather_variable_label)
     ax.set_xlabel('Date')
 
     # Set x-axis scale to match stock data
     ax.set_xlim([stock_data.index[0], stock_data.index[-1]])
 
-    plt.show()
+    # Create canvas from figure and add to window
+    #canvas = FigureCanvasTkAgg(fig, master=window)
+    #canvas.draw()
+    #canvas.get_tk_widget().grid()
 
+    #plt.show()
+# Return the figure object
+    return fig
 
 #set_start_date_time(2022, 2, 20)
 #set_end_date_time(2023, 2, 25)

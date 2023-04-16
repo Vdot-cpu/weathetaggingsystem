@@ -10,8 +10,10 @@ from meteostat import Point, Daily, Monthly, Hourly
 from datetime import datetime
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pytz
+import json
 
-
+global canvas
+canvas = None
 
 root = Tk()
 root.title("Weather Tagging System")
@@ -52,7 +54,7 @@ def LoginForm():
     username.grid(row=1, column=1)
     password = Entry(LoginFrame, font=('arial', 20), textvariable=PASSWORD, width=15, show="*")
     password.grid(row=2, column=1)
-    btn_login = Button(LoginFrame, text="Login", font=('arial', 18), width=35, command=Login)
+    btn_login = Button(LoginFrame, text="Login", font=('arial', 18), width=35, command=postLogin)
     btn_login.grid(row=4, columnspan=2, pady=20)
     lbl_register = Label(LoginFrame, text="Register", fg="Blue", font=('arial', 12))
     lbl_register.grid(row=0, sticky=W)
@@ -127,24 +129,35 @@ def Register():
         conn.close()
 
 
-def Login(root=None):
-    graph_frame = Frame(root)
-    graph_frame.pack(padx=5, pady=3)
+def postLogin(root=None):
+    global graph_frame, canvas, graphs
+    graphs = []  #list of all generated graphs
+    # Remove the LoginFrame from the root window
+    LoginFrame.pack_forget()
 
-    # create the canvas widget and add it to the frame
-    canvas = FigureCanvasTkAgg(plt.gcf(), master=graph_frame)
+    # Create a new frame to hold the graph canvas
+    graph_frame2 = Frame(root)
+    graph_frame2.pack(side=TOP, pady=5, padx=5, fill=BOTH, expand=True)
+
+    # create the canvas widget and add it to the new frame
+    canvas = FigureCanvasTkAgg(plt.gcf(), master=graph_frame2)
     canvas.get_tk_widget().pack(padx=0, pady=0)
+    graphs.append(canvas) # add the canvas to the list of graphs
 
     # update the canvas widget with the initial graph
     canvas.draw()
 
+    # Update the global graph_frame variable to the new frame
+    graph_frame = graph_frame2
+
     def generate_graph_clicked(stock_ticker, weather_variable, region, start_date, end_date, lbl_result=None):
+        global canvas,graphs
         try:
             # Convert date strings to datetime objects with timezone information
             start_datetime = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=None)
             end_datetime = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=None)
 
-            #CONVERT DATETIME TO TIMESTAMP
+
 
 
             # Set date range
@@ -167,14 +180,36 @@ def Login(root=None):
                 weather_parameter = "tavg"
             elif weather_variable == "Precipitation":
                 weather_parameter = "prcp"
-            elif weather_variable == "Humidity":
-                weather_parameter = "rh_avg"
+            elif weather_variable == "Pressure":
+                weather_parameter = "pres"
 
             # Call plot_data() function
-            plot_data(ticker, weather_parameter, location)
+
+
+            createdGraph = plot_data(ticker, weather_parameter, location, root)
+
+            canvas = FigureCanvasTkAgg(createdGraph, master=root)
+            canvas.draw()
+            canvas_row = 5
+            canvas_col = 0
+            max_columns = 2
+
+            for i, graph in enumerate(graphs):
+                if canvas_col >= max_columns:
+                    canvas_row += 1
+                    canvas_col = 0
+
+                canvas.get_tk_widget().grid(row=canvas_row, column=canvas_col)
+                canvas_col += 1
+
+            # Add the canvas to the list of graphs
+            graphs.append(canvas)
 
             # Update the canvas widget with the new graph
-            canvas.draw()
+            plt.show()
+            # Create canvas from figure and add to window
+
+
 
         except ValueError as e:
             if lbl_result is not None:
@@ -202,7 +237,7 @@ def Login(root=None):
             stock_entry.grid(row=0, column=1, padx=5, pady=5, sticky=W)
 
             weather_label = Label(root, text="Select Weather Variable:").grid(row=1, column=0, sticky=W)
-            weather_options = ["Temperature", "Precipitation", "Humidity"]
+            weather_options = ["Temperature", "Precipitation", "Pressure"]
             weather_dropdown = ttk.Combobox(root, value=weather_options)
             weather_dropdown.grid(row=1, column=1, padx=5, pady=5, sticky=W)
 
@@ -225,6 +260,28 @@ def Login(root=None):
                 start_date_entry.delete(0, END)
                 end_date_entry.delete(0, END)
 
+            def clear_graphs():
+                global graphs
+                for graph in graphs:
+                    graph.get_tk_widget().destroy()
+                graphs = []
+
+            def save_layout():
+                # Get the current state of the UI
+                ui_state = {
+                    "selected_ticker": stock_entry.get(),
+                    "selected_weather_variable": weather_dropdown.get(),
+                    "selected_region": region_dropdown.get(),
+                    "start_date": start_date_entry.get(),
+                    "end_date": end_date_entry.get(),
+                    "graphs": [graph.get_tk_widget().winfo_id() for graph in graphs]
+                }
+                # Save the UI state to a JSON file
+                with open("saved_layout.json", "w") as f:
+                    json.dump(ui_state, f)
+
+
+
             # layout
             stock_entry.grid(row=0, column=1)
             weather_dropdown.grid(row=1, column=1)
@@ -236,6 +293,8 @@ def Login(root=None):
             clear = Button(root, text="Clear Selection", bd='5', command=clear).grid(row=4, column=0, pady=10)
             end = Button(root, text="Quit Application", bd='5', command=root.destroy).grid(row=4, column=1, pady=10)
             generate_graph = Button(root, text="Generate Graph", bd='5', command=lambda: generate_graph_clicked(stock_entry.get(), weather_dropdown.get(), region_dropdown.get(), start_date_entry.get(), end_date_entry.get())).grid(row=4, column=2, pady=10)
+            clear_display_button = Button(root, text="Clear Graphs", bd='5', command=clear_graphs).grid(row=4, column=3, pady=10)
+
 
             # execution
             root.mainloop()
