@@ -228,7 +228,7 @@ def postLogin(root=None):
 
             # object creation, name & layout
             root = Tk()
-            root.title('Put in a snazzy name')
+            root.title('Weather Tagging System')
             root.geometry("1000x1000")
 
             # dropdowns and search bar
