@@ -1,7 +1,7 @@
 import tkinter.messagebox as tkMessageBox
 import sqlite3
 from tkinter import *
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from main import *
 import datetime
 import matplotlib.pyplot as plt
@@ -151,8 +151,19 @@ def postLogin(root=None):
     graph_frame = graph_frame2
 
     def generate_graph_clicked(stock_ticker, weather_variable, region, start_date, end_date, lbl_result=None):
-        global canvas,graphs
+        global canvas
+        global graphs
         try:
+            if start_date == '' or end_date == '':
+                messagebox.showerror("Error", "Please enter start and end dates.")
+            elif not validate_date(start_date) or not validate_date(end_date):
+                messagebox.showerror("Error", "Invalid date format. Please use the format 'YYYY-MM-DD'.")
+            else:
+                start_datetime = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=None)
+                end_datetime = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=None)
+                set_start_date_time(start_datetime.year, start_datetime.month, start_datetime.day)
+                set_end_date_time(end_datetime.year, end_datetime.month, end_datetime.day)
+
             # Convert date strings to datetime objects with timezone information
             start_datetime = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=None)
             end_datetime = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=None)
@@ -161,8 +172,11 @@ def postLogin(root=None):
 
 
             # Set date range
+
             set_start_date_time(start_datetime.year, start_datetime.month, start_datetime.day)
             set_end_date_time(end_datetime.year, end_datetime.month, end_datetime.day)
+
+
 
             # Get stock ticker object
             ticker = yf.Ticker(stock_ticker)
@@ -185,17 +199,33 @@ def postLogin(root=None):
 
             # Call plot_data() function
 
+            try:
+                createdGraph = plot_data(ticker, weather_parameter, location, root)
+            except AttributeError:
+                # Code to handle the error
+                messagebox.showerror("Please check your input", "The stock data could not be retrieved due to an attribute error.")
 
-            createdGraph = plot_data(ticker, weather_parameter, location, root)
+
+
 
             canvas = FigureCanvasTkAgg(createdGraph, master=root)
             canvas.draw()
             canvas_row = 5
             canvas_col = 0
             max_columns = 2
+            max_rows = 6
+
 
             for i, graph in enumerate(graphs):
+                # Check if the number of rows exceeds the maximum
+                if canvas_row == max_rows:
+                    messagebox.showerror("Error", "Cannot add more than 3 graphs.")
+                    break
                 if canvas_col >= max_columns:
+                    canvas_row += 1
+                    canvas_col = 0
+                # Check if the maximum number of columns has been reached
+                if canvas_col == max_columns:
                     canvas_row += 1
                     canvas_col = 0
 
@@ -252,6 +282,12 @@ def postLogin(root=None):
             end_date_entry = Entry(root)
             end_date_entry.grid(row=3, column=2, padx=5, pady=5, sticky=W)
 
+            def validate_date(date_str):
+                try:
+                    datetime.strptime(date_str, '%Y-%m-%d')
+                    return True
+                except ValueError:
+                    return False
             # clears fields
             def clear():
                 stock_entry.delete(0, END)

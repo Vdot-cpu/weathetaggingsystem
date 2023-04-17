@@ -1,3 +1,5 @@
+from tkinter import messagebox
+
 import numpy as np
 import requests
 import pandas as pd
@@ -23,7 +25,7 @@ temperature = 'tavg'
 precipitation = 'prcp'
 
 # stock parameters
-agriculture_ticker = yf.Ticker("AAPL")
+apple_ticker = yf.Ticker("AAPL")
 #agriculture_ticker = yf.Ticker("^SPGSAG")
 technology_ticker = yf.Ticker("^SPGSTISO")
 consumerGood_ticker = yf.Ticker("^SPHLCGIP")
@@ -37,6 +39,7 @@ def set_start_date_time(year, month, day):
     stockStartDate = str(year) + '-' + str(month) + '-' + str(day)
     global weatherStartDate
     weatherStartDate = datetime(year, month, day)
+    return stockStartDate, weatherStartDate
 
 
 def set_end_date_time(year, month, day):
@@ -47,7 +50,7 @@ def set_end_date_time(year, month, day):
     stockEndDate = str(year) + '-' + str(month) + '-' + str(day)
     global weatherEndDate
     weatherEndDate = datetime(year, month, day)
-
+    return stockEndDate, weatherEndDate
 
 # Set date range
 set_start_date_time(2023, 2, 17)
@@ -60,7 +63,10 @@ set_end_date_time(2023, 2, 24)
 def get_stock_data(startDate, endDate, interval, ticker):
     print(f"Fetching stock data from {startDate} to {endDate}")
     history = ticker.history(start=startDate, end=endDate, period=interval, actions=False)
-    history.index = history.index.tz_localize(None)
+
+    if not history.empty:
+        history.index = history.index.tz_localize(None)
+
     print(history)
     return history
 
@@ -81,51 +87,55 @@ def get_weather_data(location, weather_parameter, stockData):
     print(data)
     return data
 
-
+def is_stock_data_valid(stock_data):
+    return not stock_data.empty
 
 def plot_data(ticker, weather_variable, location, window):
-    # Get stock data
-    stock_data = get_stock_data(stockStartDate, stockEndDate, '1m', ticker)
+    try:
+        # Get stock data
+        stock_data = get_stock_data(stockStartDate, stockEndDate, '1m', ticker)
 
-    # Get weather data
-    weather_data = get_weather_data(location, weather_variable,stock_data)
-    # Filter weather data to match date range of stock data
-    weather_data = weather_data.loc[stock_data.index[0]:stock_data.index[-1], :]
+        # Get weather data
+        weather_data = get_weather_data(location, weather_variable,stock_data)
+        # Filter weather data to match date range of stock data
+        weather_data = weather_data.loc[stock_data.index[0]:stock_data.index[-1], :]
 
-    # Create plot
-    fig, ax = plt.subplots(figsize=(8, 4))
+        # Create plot
+        fig, ax = plt.subplots(figsize=(10, 4))
 
 
-    # Plot stock data
-    ax.plot(stock_data.index, stock_data['Close'], color='blue')
+        # Plot stock data
+        ax.plot(stock_data.index, stock_data['Close'], color='blue')
 
-    # Plot weather data
-    ax2 = ax.twinx()
-    ax2.plot(stock_data.index, weather_data[weather_variable], color='red')
+        # Plot weather data
+        ax2 = ax.twinx()
+        ax2.plot(stock_data.index, weather_data[weather_variable], color='red')
 
-    # Add labels
-    if (weather_variable == "tavg"):
-        weather_variable_label = "Temperature (°C)"
-    elif (weather_variable == "prcp"):
-        weather_variable_label = "Precipitation (mm)"
-    elif (weather_variable == "pres"):
-        weather_variable_label = "Pressure (atm)"
+        # Add labels
+        if (weather_variable == "tavg"):
+            weather_variable_label = "Temperature (°C)"
+        elif (weather_variable == "prcp"):
+            weather_variable_label = "Precipitation (mm)"
+        elif (weather_variable == "pres"):
+            weather_variable_label = "Pressure (atm)"
 
-    ax.set_ylabel('Price')
-    ax2.set_ylabel(weather_variable_label)
-    ax.set_xlabel('Date')
+        ax.set_ylabel('Price')
+        ax2.set_ylabel(weather_variable_label)
+        ax.set_xlabel('Date')
 
-    # Set x-axis scale to match stock data
-    ax.set_xlim([stock_data.index[0], stock_data.index[-1]])
+        # Set x-axis scale to match stock data
+        ax.set_xlim([stock_data.index[0], stock_data.index[-1]])
 
-    # Create canvas from figure and add to window
-    #canvas = FigureCanvasTkAgg(fig, master=window)
-    #canvas.draw()
-    #canvas.get_tk_widget().grid()
+        # Create canvas from figure and add to window
+        #canvas = FigureCanvasTkAgg(fig, master=window)
+        #canvas.draw()
+        #canvas.get_tk_widget().grid()
 
-    #plt.show()
-# Return the figure object
-    return fig
+        #plt.show()
+    # Return the figure object
+        return fig
+    except ValueError as e:
+        messagebox.showerror("Error", str(e))
 
 #set_start_date_time(2022, 2, 20)
 #set_end_date_time(2023, 2, 25)
