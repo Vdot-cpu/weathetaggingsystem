@@ -66,6 +66,10 @@ def get_stock_data(startDate, endDate, interval, ticker):
 
     if not history.empty:
         history.index = history.index.tz_localize(None)
+    else:
+        messagebox.showerror("Error", "Please enter a valid stock symbol.")
+        return None
+
 
     print(history)
     return history

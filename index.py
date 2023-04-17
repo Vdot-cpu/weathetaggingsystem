@@ -133,119 +133,19 @@ def postLogin(root=None):
     global graph_frame, canvas, graphs
     graphs = []  #list of all generated graphs
     # Remove the LoginFrame from the root window
-    LoginFrame.pack_forget()
-
+    #LoginFrame.pack_forget()
     # Create a new frame to hold the graph canvas
     graph_frame2 = Frame(root)
     graph_frame2.pack(side=TOP, pady=5, padx=5, fill=BOTH, expand=True)
-
     # create the canvas widget and add it to the new frame
     canvas = FigureCanvasTkAgg(plt.gcf(), master=graph_frame2)
     canvas.get_tk_widget().pack(padx=0, pady=0)
     graphs.append(canvas) # add the canvas to the list of graphs
-
     # update the canvas widget with the initial graph
     canvas.draw()
-
     # Update the global graph_frame variable to the new frame
     graph_frame = graph_frame2
 
-    def generate_graph_clicked(stock_ticker, weather_variable, region, start_date, end_date, lbl_result=None):
-        global canvas
-        global graphs
-        try:
-            if start_date == '' or end_date == '':
-                messagebox.showerror("Error", "Please enter start and end dates.")
-            elif not validate_date(start_date) or not validate_date(end_date):
-                messagebox.showerror("Error", "Invalid date format. Please use the format 'YYYY-MM-DD'.")
-            else:
-                start_datetime = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=None)
-                end_datetime = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=None)
-                set_start_date_time(start_datetime.year, start_datetime.month, start_datetime.day)
-                set_end_date_time(end_datetime.year, end_datetime.month, end_datetime.day)
-
-            # Convert date strings to datetime objects with timezone information
-            start_datetime = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=None)
-            end_datetime = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=None)
-
-
-
-
-            # Set date range
-
-            set_start_date_time(start_datetime.year, start_datetime.month, start_datetime.day)
-            set_end_date_time(end_datetime.year, end_datetime.month, end_datetime.day)
-
-
-
-            # Get stock ticker object
-            ticker = yf.Ticker(stock_ticker)
-
-            # Get location object based on selected region
-            if region == "APAC":
-                location = Point(35.6762, 139.6503)  # Tokyo
-            elif region == "EMEA":
-                location = Point(51.5074, -0.1278)  # London
-            elif region == "NA":
-                location = Point(40.7128, -74.0060)  # New York
-
-            # Set weather parameter based on selected weather variable
-            if weather_variable == "Temperature":
-                weather_parameter = "tavg"
-            elif weather_variable == "Precipitation":
-                weather_parameter = "prcp"
-            elif weather_variable == "Pressure":
-                weather_parameter = "pres"
-
-            # Call plot_data() function
-
-            try:
-                createdGraph = plot_data(ticker, weather_parameter, location, root)
-            except AttributeError:
-                # Code to handle the error
-                messagebox.showerror("Please check your input", "The stock data could not be retrieved due to an attribute error.")
-
-
-
-
-            canvas = FigureCanvasTkAgg(createdGraph, master=root)
-            canvas.draw()
-            canvas_row = 5
-            canvas_col = 0
-            max_columns = 2
-            max_rows = 6
-
-
-            for i, graph in enumerate(graphs):
-                # Check if the number of rows exceeds the maximum
-                if canvas_row == max_rows:
-                    messagebox.showerror("Error", "Cannot add more than 3 graphs.")
-                    break
-                if canvas_col >= max_columns:
-                    canvas_row += 1
-                    canvas_col = 0
-                # Check if the maximum number of columns has been reached
-                if canvas_col == max_columns:
-                    canvas_row += 1
-                    canvas_col = 0
-
-                canvas.get_tk_widget().grid(row=canvas_row, column=canvas_col)
-                canvas_col += 1
-
-            # Add the canvas to the list of graphs
-            graphs.append(canvas)
-
-            # Update the canvas widget with the new graph
-            plt.show()
-            # Create canvas from figure and add to window
-
-
-
-        except ValueError as e:
-            if lbl_result is not None:
-                lbl_result.config(text=str(e), fg="red")
-            else:
-                print(str(e))
 
 
     Database()
@@ -301,20 +201,107 @@ def postLogin(root=None):
                 for graph in graphs:
                     graph.get_tk_widget().destroy()
                 graphs = []
+                plt.close('all')
 
-            def save_layout():
-                # Get the current state of the UI
-                ui_state = {
-                    "selected_ticker": stock_entry.get(),
-                    "selected_weather_variable": weather_dropdown.get(),
-                    "selected_region": region_dropdown.get(),
-                    "start_date": start_date_entry.get(),
-                    "end_date": end_date_entry.get(),
-                    "graphs": [graph.get_tk_widget().winfo_id() for graph in graphs]
-                }
-                # Save the UI state to a JSON file
-                with open("saved_layout.json", "w") as f:
-                    json.dump(ui_state, f)
+
+
+            def generate_graph_clicked(stock_ticker, weather_variable, region, start_date, end_date, lbl_result=None):
+                global canvas, graphs
+                try:
+                    # Get stock data
+                    stock_data = get_stock_data(start_date, end_date, '1d', yf.Ticker(stock_ticker))
+
+                    # Check if the stock data is valid
+                    if stock_data is None:
+                        return
+
+                    if stock_ticker == '':
+                        messagebox.showerror("Error", "Please enter a Stock ticker")
+
+                    if start_date == '' or end_date == '':
+                        messagebox.showerror("Error", "Please enter start and end dates.")
+                    elif not validate_date(start_date) or not validate_date(end_date):
+                        messagebox.showerror("Error", "Invalid date format. Please use the format 'YYYY-MM-DD'.")
+                    else:
+                        start_datetime = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=None)
+                        end_datetime = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=None)
+                        set_start_date_time(start_datetime.year, start_datetime.month, start_datetime.day)
+                        set_end_date_time(end_datetime.year, end_datetime.month, end_datetime.day)
+
+                    # Convert date strings to datetime objects with timezone information
+                    start_datetime = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=None)
+                    end_datetime = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=None)
+
+                    # Set date range
+
+                    set_start_date_time(start_datetime.year, start_datetime.month, start_datetime.day)
+                    set_end_date_time(end_datetime.year, end_datetime.month, end_datetime.day)
+
+                    # Get stock ticker object
+                    ticker = yf.Ticker(stock_ticker)
+
+                    # Get location object based on selected region
+                    if region == "APAC":
+                        location = Point(35.6762, 139.6503)  # Tokyo
+                    elif region == "EMEA":
+                        location = Point(51.5074, -0.1278)  # London
+                    elif region == "NA":
+                        location = Point(40.7128, -74.0060)  # New York
+
+                    # Set weather parameter based on selected weather variable
+                    if weather_variable == "Temperature":
+                        weather_parameter = "tavg"
+                    elif weather_variable == "Precipitation":
+                        weather_parameter = "prcp"
+                    elif weather_variable == "Pressure":
+                        weather_parameter = "pres"
+
+                    # Call plot_data() function
+
+                    try:
+                        createdGraph = plot_data(ticker, weather_parameter, location, root)
+                    except AttributeError:
+                        # Code to handle the error
+                        messagebox.showerror("Please check your input",
+                                             "The stock data could not be retrieved due to an attribute error.")
+
+                    canvas = FigureCanvasTkAgg(createdGraph, master=root)
+                    canvas.draw()
+                    canvas_row = 5
+                    canvas_col = 0
+                    max_columns = 2
+                    max_rows = 6
+
+                    for i, graph in enumerate(graphs):
+                        # Check if the number of rows exceeds the maximum
+                        if canvas_row == max_rows:
+                            messagebox.showerror("Error", "Cannot add more than 3 graphs.")
+                            break
+                        if canvas_col >= max_columns:
+                            canvas_row += 1
+                            canvas_col = 0
+                        # Check if the maximum number of columns has been reached
+                        if canvas_col == max_columns:
+                            canvas_row += 1
+                            canvas_col = 0
+
+                        canvas.get_tk_widget().grid(row=canvas_row, column=canvas_col)
+                        canvas_col += 1
+
+                    # Add the canvas to the list of graphs
+                    graphs.append(canvas)
+
+                    # Update the canvas widget with the new graph
+                    plt.show()
+                    # Create canvas from figure and add to window
+
+
+
+                except ValueError as e:
+                    if lbl_result is not None:
+                        lbl_result.config(text=str(e), fg="red")
+                    else:
+                        print(str(e))
 
 
 
